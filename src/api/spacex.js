@@ -1,20 +1,29 @@
-class SpaceX{
+class SpaceX {
 
     constructor(baseUrl = "https://api.spacexdata.com/v4/") {
         this.baseUrl = baseUrl;
     }
-    launches(){
-        return fetch(`${this.baseUrl}launches`)
-            .then(response=>response.json())
-    }
-    launchpads(){
-        return fetch(`${this.baseUrl}launchpads`)
-            .then(response=>response.json())
-    }
-    launchpad(id){
-        return fetch(`${this.baseUrl}launchpads/${id}`)
-            .then(response=>response.json())
 
+    _get(path) {
+        return fetch(`${this.baseUrl}${path}`).then(response => {
+            if (!response.ok) {
+                throw new Error(`SpaceX API error: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        });
+    }
+
+    launches() {
+        return this._get("launches");
+    }
+
+    // Task 1: methods to extract launchpads
+    launchpads() {
+        return this._get("launchpads");
+    }
+
+    launchpad(id) {
+        return this._get(`launchpads/${id}`);
     }
 
 }
