@@ -1,21 +1,32 @@
 import {SpaceX} from "./api/spacex";
 import * as d3 from "d3";
 import * as Geo from './geo.json'
+import sampleData from './sample-data.json'
 
 document.addEventListener("DOMContentLoaded", setup)
 
 function setup() {
     const spaceX = new SpaceX();
     Promise.all([spaceX.launches(), spaceX.launchpads()])
-        .then(([launches, launchpads]) => {
-            const listContainer = document.getElementById("listContainer")
-            renderLaunches(launches, listContainer);
-            drawMap(launchpads);
-        })
+        .then(([launches, launchpads]) => render(launches, launchpads))
         .catch(error => {
-            console.error(error);
-            document.getElementById("listContainer").textContent = "Failed to load data";
+            // The public API is rate limited and may be unavailable:
+            // fall back to bundled sample data so the UI still works.
+            console.warn("Launch Library API unavailable, using bundled sample data:", error);
+            render(sampleData.launches, sampleData.launchpads, true);
         })
+}
+
+function render(launches, launchpads, isSample = false) {
+    const listContainer = document.getElementById("listContainer")
+    renderLaunches(launches, listContainer);
+    drawMap(launchpads);
+    if (isSample) {
+        const note = document.createElement("p");
+        note.className = "note";
+        note.textContent = "API is unavailable or rate limited - showing sample data.";
+        listContainer.before(note);
+    }
 }
 
 function renderLaunches(launches, container) {
