@@ -15,3 +15,27 @@
     overflow-y: scroll;
     border: black 1px solid;
 }
+#listContainer ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+#listContainer li {
+    padding: 4px 8px;
+    cursor: pointer;
+}
+#listContainer li:hover {
+    background: #ffe8e0;
+}
+
+circle.launchpad {
+    fill: #1f6feb;
+    stroke: #fff;
+    stroke-width: 1px;
+    transition: r 0.15s, fill 0.15s;
+}
+circle.launchpad.active {
+    fill: #e5321b;
+    stroke: #000;
+    stroke-width: 2px;
+}
