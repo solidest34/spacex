@@ -4,25 +4,57 @@ import * as Geo from './geo.json'
 
 document.addEventListener("DOMContentLoaded", setup)
 
-function setup(){
+function setup() {
     const spaceX = new SpaceX();
-    spaceX.launches().then(data=>{
-        const listContainer = document.getElementById("listContainer")
-        renderLaunches(data, listContainer);
-        drawMap();
-    })
+    Promise.all([spaceX.launches(), spaceX.launchpads()])
+        .then(([launches, launchpads]) => {
+            const listContainer = document.getElementById("listContainer")
+            renderLaunches(launches, listContainer);
+            drawMap(launchpads);
+        })
+        .catch(error => {
+            console.error(error);
+            document.getElementById("listContainer").textContent = "Failed to load data";
+        })
 }
-function renderLaunches(launches, container){
+
+function renderLaunches(launches, container) {
     const list = document.createElement("ul");
-    launches.forEach(launch=>{
+    launches.forEach(launch => {
         const item = document.createElement("li");
         item.innerHTML = launch.name;
+        // Task 3: highlight the launchpad of this launch while hovering the item
+        item.addEventListener("mouseenter", () => highlightLaunchpad(launch.launchpad, true));
+        item.addEventListener("mouseleave", () => highlightLaunchpad(launch.launchpad, false));
         list.appendChild(item);
     })
     container.replaceChildren(list);
 }
 
-function drawMap(){
+// Task 2: launchpads as GeoJSON points
+function launchpadsToGeoJSON(launchpads) {
+    return {
+        type: "FeatureCollection",
+        features: launchpads
+            .filter(pad => pad.longitude != null && pad.latitude != null)
+            .map(pad => ({
+                type: "Feature",
+                properties: {id: pad.id, name: pad.full_name || pad.name},
+                geometry: {type: "Point", coordinates: [pad.longitude, pad.latitude]}
+            }))
+    };
+}
+
+function highlightLaunchpad(launchpadId, active) {
+    if (!launchpadId) return;
+    d3.selectAll("circle.launchpad")
+        .filter(d => d.properties.id === launchpadId)
+        .classed("active", active)
+        .attr("r", active ? 8 : 4)
+        .raise();
+}
+
+function drawMap(launchpads) {
     const width = 640;
     const height = 480;
     const margin = {top: 20, right: 10, bottom: 40, left: 100};
@@ -34,8 +66,9 @@ function drawMap(){
             "translate(" + margin.left + "," + margin.top + ")");
     const projection = d3.geoMercator()
         .scale(70)
-        .center([0,20])
+        .center([0, 20])
         .translate([width / 2 - margin.left, height / 2]);
+
     svg.append("g")
         .selectAll("path")
         .data(Geo.features)
@@ -45,8 +78,19 @@ function drawMap(){
         .attr("d", d3.geoPath()
             .projection(projection)
         )
-        .attr("fill", function (d) {
-            return colorScale(0);
-        })
+        .attr("fill", "#cccccc")
         .style("opacity", .7)
+
+    const pads = launchpadsToGeoJSON(launchpads);
+    svg.append("g")
+        .selectAll("circle")
+        .data(pads.features)
+        .enter()
+        .append("circle")
+        .attr("class", "launchpad")
+        .attr("cx", d => projection(d.geometry.coordinates)[0])
+        .attr("cy", d => projection(d.geometry.coordinates)[1])
+        .attr("r", 4)
+        .append("title")
+        .text(d => d.properties.name);
 }
